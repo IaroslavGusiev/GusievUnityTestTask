@@ -1,0 +1,70 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &5426844718008327022
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5426844718008327016}
+  - component: {fileID: 5426844718008327023}
+  m_Layer: 0
+  m_Name: ManagerUI
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5426844718008327016
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5426844718008327022}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_RootOrder: 0
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &5426844718008327023
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5426844718008327022}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2011504c3546e482aaaea805d5e409e4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  text_best_score: {fileID: 0}
+  text_score: {fileID: 0}
+  text_endgame_score: {fileID: 0}
+  text_combo: {fileID: 0}
+  image_endgame: {fileID: 0}
+  image_combo_smiley: {fileID: 0}
+  sprite_endgame:
+  - {fileID: -224506161, guid: 875b67e2416ba481898781f6c1cc3f63, type: 3}
+  - {fileID: 116855308, guid: 875b67e2416ba481898781f6c1cc3f63, type: 3}
+  - {fileID: 531460837, guid: 875b67e2416ba481898781f6c1cc3f63, type: 3}
+  - {fileID: -1928294189, guid: 875b67e2416ba481898781f6c1cc3f63, type: 3}
+  - {fileID: 2130148002, guid: 875b67e2416ba481898781f6c1cc3f63, type: 3}
+  - {fileID: -737326, guid: 875b67e2416ba481898781f6c1cc3f63, type: 3}
+  - {fileID: 1985864224, guid: 875b67e2416ba481898781f6c1cc3f63, type: 3}
+  - {fileID: 1065770928, guid: 875b67e2416ba481898781f6c1cc3f63, type: 3}
+  - {fileID: 618563824, guid: 875b67e2416ba481898781f6c1cc3f63, type: 3}
+  - {fileID: -938394686, guid: 875b67e2416ba481898781f6c1cc3f63, type: 3}
+  - {fileID: -399262408, guid: 875b67e2416ba481898781f6c1cc3f63, type: 3}
+  sprite_combo:
+  - {fileID: -880552312, guid: 875b67e2416ba481898781f6c1cc3f63, type: 3}
+  - {fileID: 1451567916, guid: 875b67e2416ba481898781f6c1cc3f63, type: 3}
+  - {fileID: 2071112911, guid: 875b67e2416ba481898781f6c1cc3f63, type: 3}
+  - {fileID: -269015682, guid: 875b67e2416ba481898781f6c1cc3f63, type: 3}
+  - {fileID: -1193146382, guid: 875b67e2416ba481898781f6c1cc3f63, type: 3}
