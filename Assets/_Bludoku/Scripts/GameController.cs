@@ -5,12 +5,14 @@ using _Bludoku.Scripts.Score;
 using _Bludoku.Scripts.Combo;
 using _Bludoku.Scripts.Boards;
 using _Bludoku.Scripts.Effects;
+using _Bludoku.Scripts.Analytics;
 
 namespace _Bludoku.Scripts
 {
     public class GameController : MonoBehaviour
     {
         public static GameController Instance { get; private set; }
+        public IAnalyticsProvider Analytics { get; private set; }
         
         [Header("--- Core ---")]
         [SerializeField] private UIMediator uiMediator;
@@ -42,6 +44,7 @@ namespace _Bludoku.Scripts
         {
             RestoreScoreAndCombo();
             figuresController.OnGameOver += HandleGameOver;
+            TrackInitialGameStart();
             LoadGame();
         }
 
@@ -64,6 +67,7 @@ namespace _Bludoku.Scripts
             uiMediator.HideGameOver();
             scoreMediator.ResetScore();
             comboPresenter.ResumePresentation();
+            TrackGameStarted("new");
         }
 
         public void SecondChance()
@@ -72,15 +76,22 @@ namespace _Bludoku.Scripts
             figuresController.UpdateToEasyFigures();
             scoreMediator.RefreshViews();
             comboPresenter.ResumePresentation();
+            TrackSecondChance();
         }
 
         private void InitializeGame()
         {
+            Analytics = new ConsoleAnalyticsProvider();
+
             int highComboThreshold = ComboVisualSettings.ResolveHighComboThreshold(comboVisualSettings);
+            
+            figuresController.Initialize(Analytics);
             comboMediator.Initialize(comboRule, allowedNonClearingMoves);
-            scoreMediator.Initialize(highComboThreshold);
+            scoreMediator.Initialize(highComboThreshold, Analytics);
             comboPresenter.Initialize(comboRule, allowedNonClearingMoves, highComboThreshold);
             effectsManager.Initialize(comboVisualSettings);
+
+            comboMediator.StateChanged += TrackComboBroken;
         }
 
         private void ShutdownGame()
@@ -107,6 +118,7 @@ namespace _Bludoku.Scripts
 
             if (comboMediator != null)
             {
+                comboMediator.StateChanged -= TrackComboBroken;
                 comboMediator.Dispose();
             }
         }
@@ -114,8 +126,13 @@ namespace _Bludoku.Scripts
         private void RestoreScoreAndCombo()
         {
             ScoreSystem.LoadScore();
-            // Legacy saves contain the booster flag, but not the original streak length.
-            comboMediator.RestoreCombo(ScoreSystem.IsBoosterEnabled ? ComboState.ActivationThreshold : 0);
+
+            int threshold = ScoreSystem.IsBoosterEnabled
+                ? ComboState.ActivationThreshold
+                : 0;
+
+            comboMediator.RestoreCombo(threshold);
+            
             scoreMediator.RefreshViews();
         }
 
@@ -129,6 +146,52 @@ namespace _Bludoku.Scripts
         {
             comboPresenter.SuspendPresentation();
             uiMediator.ShowGameOver();
+            TrackGameOver();
+        }
+
+        private void TrackInitialGameStart()
+        {
+            bool restored = BoardSaveLoad.TryLoad(out _);
+            
+            TrackGameStarted(restored 
+                ? "restored" 
+                : "new");
+        }
+
+        private void TrackGameStarted(string source)
+        {
+            Analytics.Track(new AnalyticsEvent(AnalyticsEvents.GameStarted)
+                .Add("source", source)
+                .Add("score", ScoreSystem.Score)
+                .Add("combo_count", comboMediator.State.Count));
+        }
+
+        private void TrackSecondChance()
+        {
+            Analytics.Track(new AnalyticsEvent(AnalyticsEvents.PowerUpUsed)
+                .Add("power_up_type", "second_chance")
+                .Add("score", ScoreSystem.Score)
+                .Add("combo_count", comboMediator.State.Count));
+        }
+
+        private void TrackGameOver()
+        {
+            Analytics.Track(new AnalyticsEvent(AnalyticsEvents.GameOver)
+                .Add("score", ScoreSystem.Score)
+                .Add("high_score", ScoreSystem.HighScore)
+                .Add("combo_count", comboMediator.State.Count));
+        }
+
+        private void TrackComboBroken(ComboChange change)
+        {
+            if (change.Reason != ComboChangeReason.Broken || change.Previous.IsActive == false)
+            {
+                return;
+            }
+
+            Analytics.Track(new AnalyticsEvent(AnalyticsEvents.ComboBroken)
+                .Add("combo_count", change.Previous.Count)
+                .Add("grace_moves_used", change.Previous.ConsecutiveMisses));
         }
     }
 }

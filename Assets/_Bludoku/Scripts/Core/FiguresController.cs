@@ -1,8 +1,9 @@
 using System;
-using System.Collections.Generic;
+using UnityEngine;
 using _Bludoku.Scripts.Blocks;
 using _Bludoku.Scripts.Boards;
-using UnityEngine;
+using System.Collections.Generic;
+using _Bludoku.Scripts.Analytics;
 
 namespace _Bludoku.Scripts.Core
 {
@@ -16,6 +17,11 @@ namespace _Bludoku.Scripts.Core
         
         private readonly FiguresSaveLoad _saveLoad = new();
         private readonly List<Figure> _currentFigures = new();
+
+        private IAnalyticsProvider _analytics;
+
+        public void Initialize(IAnalyticsProvider analytics) =>
+            _analytics = analytics;
 
         public void LoadFigures()
         {
@@ -103,9 +109,14 @@ namespace _Bludoku.Scripts.Core
             board.ClearHighlight();
 
             if (board.CanPlaceFigure(figure))
+            {
                 PlaceFigure(figure);
+            }
             else
+            {
                 figure.SnapBack();
+                TrackPieceMoved(figure, false);
+            }
         }
 
         private void RegisterFigure(Figure figure,  int index)
@@ -127,6 +138,7 @@ namespace _Bludoku.Scripts.Core
             figure.OnReleased -= FigureReleased;
 
             board.SetFigure(figure);
+            TrackPieceMoved(figure, true);
 
             _currentFigures.Remove(figure);
             Destroy(figure.gameObject);
@@ -153,5 +165,10 @@ namespace _Bludoku.Scripts.Core
             if (!anyCanBePlaced && _currentFigures.Count > 0)
                 OnGameOver?.Invoke();
         }
+
+        private void TrackPieceMoved(Figure figure, bool placed) =>
+            _analytics.Track(new AnalyticsEvent(AnalyticsEvents.PieceMoved)
+                .Add("figure_id", figure.ID)
+                .Add("outcome", placed ? "placed" : "returned"));
     }
 }

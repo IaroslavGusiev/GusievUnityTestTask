@@ -1,5 +1,6 @@
 using UnityEngine;
 using _Bludoku.Scripts.Combo;
+using _Bludoku.Scripts.Analytics;
 
 namespace _Bludoku.Scripts.Score
 {
@@ -10,9 +11,11 @@ namespace _Bludoku.Scripts.Score
         [SerializeField] private ScoreBoosterView boosterView;
         
         private int _highComboThreshold;
+        private IAnalyticsProvider _analytics;
 
-        public void Initialize(int highComboThreshold)
+        public void Initialize(int highComboThreshold, IAnalyticsProvider analytics)
         {
+            _analytics = analytics;
             _highComboThreshold = Mathf.Max(ComboState.ActivationThreshold, highComboThreshold);
             
             boosterView.Initialize();
@@ -48,9 +51,33 @@ namespace _Bludoku.Scripts.Score
         private void MoveProcessed(ComboMove move, ComboState state)
         {
             UpdateBooster(state);
-            ScoreSystem.AddSetScore(move.ClearedCells);
+            AwardScore(move, state);
             scoreView.UpdateScore();
         }
+
+        private void AwardScore(ComboMove move, ComboState state)
+        {
+            int previousScore = ScoreSystem.Score;
+            int baseScore = ScoreSystem.GetBaseSetScore(move.ClearedCells);
+
+            ScoreSystem.AddSetScore(move.ClearedCells);
+
+            int awardedScore = ScoreSystem.Score - previousScore;
+            int bonusScore = awardedScore - baseScore;
+
+            if (bonusScore > 0)
+            {
+                TrackComboBonus(state, baseScore, bonusScore);
+            }
+        }
+
+        private void TrackComboBonus(ComboState state, int baseScore, int bonusScore) =>
+            _analytics.Track(new AnalyticsEvent(AnalyticsEvents.BonusReceived)
+                .Add("bonus_type", "combo")
+                .Add("combo_count", state.Count)
+                .Add("base_score", baseScore)
+                .Add("bonus_score", bonusScore)
+                .Add("score", ScoreSystem.Score));
 
         private void UpdateBooster(ComboState state, bool animate = true)
         {
