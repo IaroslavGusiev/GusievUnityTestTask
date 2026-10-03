@@ -1,209 +1,71 @@
-# MONEYTIME SDK INTEGRATION for HIDESEEK
+﻿# UnityTestTask
 
-This README will guide you to integrate the various SDK required for this UNITY project to work as expected by HideSeek for Android.
+An extension of the existing Bludoku project for the Unity Developer Test Assignment: a combo system, combo VFX, and extensible analytics.
 
-It will help you to:
-- integrate Applovin MAX Mediation
-- integrate the various Firebase required functionnalities (Analytics, Crashlytics, RemoveConfig)
-- integrate Google Play
-- setup the project in Unity
-- build the project
+## Approach
 
+The implementation keeps the existing gameplay foundation and visual identity. New features reuse the board events, score calculation, UI, and particle effects. Refactoring focuses on the code involved in those features.
 
+Plain C# classes hold combo rules, combo state, and analytics data. Mediators connect these systems to gameplay, while presenters and views handle visual feedback. Explicit scene references and the existing assembly structure keep the scope small.
 
-## Prerequisite
-- UNITY HUB
-- UNITY 2022.3.13f1 to make sure the compatibility is optimal
-- Android Studio Support Package when installing Unity
+## Combo system
 
+Each successful placement that clears cells increases the combo by one. The combo becomes active at two clears and enables the existing **1.5x score multiplier**, with the original integer rounding preserved.
 
+Two strategies implement `IComboRule`:
 
-## STEP 1: GENERATE THE UNITY PROJECT
+- **Consecutive Clears:** a placement without a clear breaks the combo.
+- **Grace Moves:** configurable non-clearing placements preserve the combo; another clear refills the allowance. The current scene allows two grace moves, with the third non-clearing placement breaking the combo.
 
-The repository includes:
+Rejected placements do not affect the combo. `ComboSystem` owns the authoritative state; a rule returns an advance, hold, or break decision. `ComboMediator` connects board placements to that state, and `ScoreMediator` uses it to award score. Additional rules can use the same interface without changing the views or score calculation.
 
-- "_IntegrationPackage" containing functionnalities and plugins common to every HideSeek game:
-    - MoneyTime management
-    - Ads Management
-    - Coffee Break
-    - Data Save system
-    - ...
+## Combo feedback and VFX
 
-- a second package named after the game project, and containing all the assets and code for the game itself.
+The existing visual style is extended with:
 
-- the FireBase Google-Info.plist file as well as the User.Keystore file that are required to build and upload the game.
+- A combo badge and animated grace indicators, including a last-chance warning.
+- Combo text that pops, rises, pauses, and follows a Bezier curve to the badge, with a colored particle trail and an arrival response.
+- A repeating heart heartbeat with sparkles while the combo remains active.
+- Confetti at the cleared area's center and stronger existing clear particles during combos.
 
-- a modified "AndroidManifest.xml" file inside the "Plugins/Android/" folder required to open the "MoneyTime" app from the game.
+Higher combos use stronger text appearance, trail colors, heart animation, and particle intensity. Dedicated view classes own the animation sequences and particle integration. A reusable pool of flight views supports overlapping feedback, with presentation canceled when gameplay UI is hidden or the combo resets. Effects stay on the UI and cleared cells.
 
-- Once the repository is downloaded:  
-    - Open UnityHub
-    - Go to Projects
-    - Add the project folder to the projects list
-    - Make sure the 2022.3.13f1 version of Unity is installed, then open the project
+## Analytics
 
-Unity should automatically generate the required Libraries.
+`IAnalyticsProvider` separates event delivery from gameplay. The current `ConsoleAnalyticsProvider` writes yellow `[Analytics]` logs to the Unity Console; no real analytics service is required for this assignment.
 
+| Event | Tracked action |
+| --- | --- |
+| `piece_moved` | A piece is placed or returned after release |
+| `bonus_received` | Extra score is awarded by an active combo |
+| `power_up_used` | Second Chance replaces the available pieces |
+| `combo_broken` | An active combo breaks |
+| `game_started` | A new or restored game begins |
+| `game_over` | No remaining piece can be placed; includes final and best score |
 
+Event names are centralized in `AnalyticsEvents`. `AnalyticsEvent` carries extensible string, integer, and decimal parameters. Adding an event means adding its constant and tracking it at the gameplay action; adding fields means extending its payload. A future Firebase provider can implement the same interface and replace the provider created by `GameController`.
 
-## STEP 2: ADDITIONAL UNITY PACKAGES IMPORT
+## Refactoring and saves
 
-You will find all the required additional packages at the following [github address](https://github.com/InkedLau/HideSeek_Packages).  
+`GameController` coordinates initialization and disposal of the feature modules. Their gameplay subscriptions follow that lifecycle, while views manage their animation visibility. Touched classes use smaller methods and clearer responsibilities.
 
-For every package, process as follow:
-- In Unity, go to Assets
-- Import Package
-- Custom Package... 
-- Then select the ".unitypackage" file you want to import.
+`JsonSaveStorage` provides shared storage under `Application.persistentDataPath`, with separate `board.json`, `figures.json`, and `score.json` files. Domain adapters handle each data format. Figures retain their original slots, including empty slots, when restored. New systems can reuse the same storage, concentrating future persistence changes in one place.
 
-When the Import window shows up, click "Import" at the bottom right corner and wait for Unity to integrate the files to the project. 
-It may take a couple of minutes depending on the package.
+**Tools > Bludoku > Hot Actions > Clear Save Files** deletes these three files, including the best score. The action is available outside Play Mode and preserves unrelated files and settings.
 
+## Assumptions and limitations
 
+Second Chance is treated as the existing power-up, and extra combo score as the bonus. Analytics uses Console logging. Previous score and figure PlayerPrefs data is not migrated. On restart, the saved booster flag restores combo activation at count two; the exact streak and grace usage are not persisted.
 
-## STEP 3: UNITY SCENES AND SETTINGS
+## Further development
 
-Once every package is imported: 
-- drag and drop the scene "UI_Scene" from the "Assets/_IntegrationPackage" folder into the Unity Hierarchy.
-- Add the game Scene into the Hierarchy, and unload them by right clicking on them and selecting "Unload Scene". 
-> [!NOTE]
-> Most of the time, you will find the various game scenes in the folder "Assets/_GameName/Scene"
+- Consider VContainer as dependencies grow, to simplify composition and isolated testing.
+- Add an application state machine for boot, loading, play, game over, and reset transitions.
+- Refine VFX timing and composition, and explore custom 2D shaders.
+- Persist the complete combo state if exact session restoration becomes a requirement.
 
-- In the Hierarchy, unfold the UI_Scene and select the gameobject "SETTINGS".
+## Running and Android delivery
 
-- In the Inspector, fill in the following information if they are missing:
-    - URL Privacy: https://www.hideseek.games/privacy-policies
-    - Scene Name: The name of the first game scene that will be loaded after the Hideseek SDK is initialized.
-    - Max Sdk Key: The MAX SDK key of the HideSeek Account, available on [AppLovin](https://dash.applovin.com/o/account?r=2#keys) or on the following [Google Spritesheet](https://docs.google.com/spreadsheets/d/1pVgJ9nfU15yF3eF9PjyWYvyGiYSDdE-fKXjwaDAtYrc/edit#gid=0).
-    - Admob Android ID: available on the following [Google Spritesheet](https://docs.google.com/spreadsheets/d/1pVgJ9nfU15yF3eF9PjyWYvyGiYSDdE-fKXjwaDAtYrc/edit#gid=0).
-    - Max BANNER_ID: available on [AppLovin](https://dash.applovin.com/o/mediation/ad_units/976338179) or on the following [Google Spritesheet](https://docs.google.com/spreadsheets/d/1pVgJ9nfU15yF3eF9PjyWYvyGiYSDdE-fKXjwaDAtYrc/edit#gid=0).
-    - Max INTER_ID: available on [AppLovin](https://dash.applovin.com/o/mediation/ad_units/976338179) or on the following [Google Spritesheet](https://docs.google.com/spreadsheets/d/1pVgJ9nfU15yF3eF9PjyWYvyGiYSDdE-fKXjwaDAtYrc/edit#gid=0).
-    - Max RW_ID: available on [AppLovin](https://dash.applovin.com/o/mediation/ad_units/976338179) or on the following [Google Spritesheet](https://docs.google.com/spreadsheets/d/1pVgJ9nfU15yF3eF9PjyWYvyGiYSDdE-fKXjwaDAtYrc/edit#gid=0).
-    - MoneyTime Game Name: available on the following [Google Spritesheet](https://docs.google.com/spreadsheets/d/1pVgJ9nfU15yF3eF9PjyWYvyGiYSDdE-fKXjwaDAtYrc/edit#gid=0).
+Open the project in **Unity 2022.3.62f3**. For direct gameplay review, open `Assets/_Bludoku/Scenes/GameScene 1.unity` and enter Play Mode.
 
-Once done, don't forget to save the UI Scene. You can also override the "SETTINGS" prefab by selecting the SETTINGS GameObject in the scene, then selecting "override" on the top left corner of the Inspector window.
-
-
-
-## STEP 4: APPLOVIN MAX SDK SETUP
-
-Everything code-related is already implemented inside the script "Assets/_IntegrationPackage/Script/ManagerAds.cs"
-
-Every additional instruction to complete the Applovin MAX integration is available at this address:  https://dash.applovin.com/documentation/mediation/unity/getting-started/integration
-You will mainly have to manually select the various mediation available in the Applovin MAX mediation window in Unity:
-- Select Applovin in the top menu
-- Select Integration Manager
-
-Then don't forget to fill in the GoogleAdManager APP ID as well as the MAX SDK KEY, both of them available on the following [Google Spritesheet](https://docs.google.com/spreadsheets/d/1pVgJ9nfU15yF3eF9PjyWYvyGiYSDdE-fKXjwaDAtYrc/edit#gid=0).
-
-
-
-
-## STEP 5: BUILD SETUP
-
-- Go to File
-- Build Settings
-- Delete any existing Scene in Build
-- Add Open Scenes
-- Select the Android Platform
-- Switch Platform
-- [x] Tick the option "Build App Bundle"
-- Select "Player Settings"
-
-
-### In the Project Settings:
-- Resolution and Presentation:
-    - Orientation -> Default Orientation -> Portrait
-
-- Splash Image:
-    - [ ] Untick "Show Unity Logo"
-    - Add the HideSeek logo in the logos list, available in "Assets/_IntegrationPackage/Sprites/HS_1024.png"
-    - Set the Background Color to Black `#000000`
-
-- Other Settings:
-    - Identification: 
-        - Enable Override Default Package Name if needed
-        - Fill in the Package Name if needed (com.hideseek.gamename)
-        - Setup a new version and new bundle version code
-        - Make sure the Minimum API Level and Target API Level are high enough depending on the SDK Version
-    
-    - Script Compilation -> Scripting Define Symbols -> Add the Following:
-        - GOOGLE_PLAY
-        - MAX
-        - FB
-    - Apply
-> [!CAUTION]
-> IF THE DEFINE SYMBOLS ARE NOT ADDED, THE ADS WILL NOT RUN
-
-- Publishing settings
-    - Enable Custom Keystore
-    - Select the file "user.keystore" available at the root folder of the project
-    - Fill in the password
-    - Select the right Alias
-    - Fill in the Project Key password
-
-
-    - Go to Buid:
-        - [x] Enable "Custom Main Manifest" if not already selected (It should already be included in the project folder)
-        - [x] Enable "Custom Main Gradle Template"
-        - [x] Enable "Custom Gradle Properties Template"
-        - [x] Enable "Custom Gradle Settings Template"
-
-> [!CAUTION]
-> IF THE BUILD TEMPLATES ARE NOT SETUP CORRECTLY, THE DEPENDENCY RESOLVER WILL FAIL AND THE PROJECT WILL NOT BUILD
-
-
-
-## STEP 6: FINAL SETUP AND CHECK BEFORE BUILDING
-
-- Open the file "AndroidManifest.xml" in the folder "Assets/Plugins/Android" and make sure the file contains the following code:
-
-```
-<?xml version="1.0" encoding="utf-8"?>
-<manifest
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.unity3d.player"
-    xmlns:tools="http://schemas.android.com/tools">
-
-    <queries>
-        <package android:name="com.money.time"/>
-    </queries>
-
-    <application>
-        <activity android:name="com.unity3d.player.UnityPlayerActivity"
-                  android:theme="@style/UnityThemeSelector">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
-        <meta-data android:name="unityplayer.UnityActivity" android:value="true" />
-    </application>
-</manifest>
-```
-
-Copy and paste this code inside the AndroidManifest.xml if necessary.
-
-
-Once done, go back to Unity:
-- Go to "Assets"
-- External Dependency Manager
-- Android Resolver
-- Force Resolve
-
-A window should appear notifying that the Resolution has Succeeded.
-
-> [!TIP]
-> If the resolution fails, close Unity as well as Visual Code / Visual Studio Code. At the root of the project, delete the file "Library", then open again the project in Unity and try to do a new force resolve. Most of the time, it is enough to solve the Dependency Resolver issue.
-
-
-
-## STEP 7: BUILD
-
-In Unity:
-- Go to "File"
-- Build Settings
-- Build
-
-If every step has been followed, you should obtain a ".aab" file that could will be able to upload on the Android Dev Console.
-
-Congratulations!
+Android APK delivery is pending. The APK location and device verification will be added after the build is completed.
