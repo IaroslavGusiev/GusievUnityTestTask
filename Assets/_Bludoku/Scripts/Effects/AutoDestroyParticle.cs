@@ -4,14 +4,17 @@ namespace _Bludoku.Scripts.Effects
 {
     public class AutoDestroyParticle : MonoBehaviour
     {
-        private ParticleSystem _ps;
+        private ParticleSystem _particleSystem;
 
-        private void Awake() => _ps = GetComponent<ParticleSystem>();
+        private void Awake() => 
+            _particleSystem = GetComponent<ParticleSystem>();
 
         private void Update()
         {
-            if (!_ps.IsAlive())
+            if (_particleSystem.IsAlive(true) == false)
+            {
                 Destroy(gameObject);
+            }
         }
     }
 }

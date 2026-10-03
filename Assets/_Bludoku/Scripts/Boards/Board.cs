@@ -7,13 +7,17 @@ namespace _Bludoku.Scripts.Boards
 {
     public class Board : MonoBehaviour
     {
+        private const int BoardSize = 9;
+        private const int BoxSize = 3;
+        private const int BoardCenter = (BoardSize - 1) / 2;
+        private const int BoxCenter = (BoxSize - 1) / 2;
         public event Action<ClearResult> OnFigurePlaced;
 
         [SerializeField] private Transform tilesParent;
 
         private GridView _gridView;
 
-        private int[,] _grid = new int[9, 9];
+        private int[,] _grid = new int[BoardSize, BoardSize];
 
         public bool IsInBounds(int x, int y) => x >= 0 && x < _grid.GetLength(1) && y >= 0 && y < _grid.GetLength(0);
 
@@ -41,6 +45,7 @@ namespace _Bludoku.Scripts.Boards
             _gridView.UpdateGrid(_grid);
 
             ClearResult clearResult = CheckAndClear();
+            clearResult.PlacementCenter = GetPlacementCenter(figure.Grid, (int)corner.x, (int)corner.y);
             OnFigurePlaced?.Invoke(clearResult);
 
             BoardSaveLoad.Save(_grid);
@@ -107,8 +112,8 @@ namespace _Bludoku.Scripts.Boards
                 if (figure.Grid[i, j] != 0)
                     _gridView.SetHighlight(y + i, x + j, HighlightType.Placement);
 
-            for (int row = 0; row < 9; row++)
-            for (int col = 0; col < 9; col++)
+            for (int row = 0; row < BoardSize; row++)
+            for (int col = 0; col < BoardSize; col++)
                 if (willClear[row, col] && _grid[row, col] != 0)
                     _gridView.SetHighlight(row, col, HighlightType.WillClear);
         }
@@ -120,16 +125,20 @@ namespace _Bludoku.Scripts.Boards
 
         public ClearResult CheckAndClear()
         {
-            bool[,] toClear = BuildClearMask(_grid, out var remove);
+            var groupCenters = new List<Vector2Int>();
+            bool[,] toClear = BuildClearMask(_grid, out var clearedGroups, groupCenters);
             var result = new ClearResult
             { 
                 ClearedPositions = new List<Vector3>(),
-                FiguresRemovedCount = remove
+                ClearedGroupsCount = clearedGroups
             };
 
-            for (int row = 0; row < 9; row++)
+            foreach (var center in groupCenters)
+                result.ClearedGroupCenters.Add(GridToWorld(center.y, center.x));
+
+            for (int row = 0; row < BoardSize; row++)
             {
-                for (int col = 0; col < 9; col++)
+                for (int col = 0; col < BoardSize; col++)
                 {
                     if (toClear[row, col])
                     {
@@ -152,12 +161,31 @@ namespace _Bludoku.Scripts.Boards
                 -(row - (_grid.GetLength(0) - 1) / 2f), 0f);
         }
 
+        private Vector3 GetPlacementCenter(int[,] figureGrid, int column, int row)
+        {
+            var bounds = new Bounds();
+            bool hasCell = false;
+            for (int y = 0; y < figureGrid.GetLength(0); y++)
+            for (int x = 0; x < figureGrid.GetLength(1); x++)
+            {
+                if (figureGrid[y, x] == 0) continue;
+                Vector3 position = GridToWorld(row + y, column + x);
+                if (!hasCell)
+                    bounds = new Bounds(position, Vector3.zero);
+                else
+                    bounds.Encapsulate(position);
+                hasCell = true;
+            }
+
+            return hasCell ? bounds.center : transform.position;
+        }
+
         public void LoadGrid()
         {
-            _grid = BoardSaveLoad.TryLoad(out int[,] loadedGrid) ? loadedGrid : new int[9, 9];
+            _grid = BoardSaveLoad.TryLoad(out int[,] loadedGrid) ? loadedGrid : new int[BoardSize, BoardSize];
             if (_grid == null)
             {
-                _grid = new int[9, 9];
+                _grid = new int[BoardSize, BoardSize];
             }
 
             _gridView.UpdateGrid(_grid);
@@ -165,7 +193,7 @@ namespace _Bludoku.Scripts.Boards
 
         public void ResetBoard()
         {
-            _grid = new int[9, 9];
+            _grid = new int[BoardSize, BoardSize];
             _gridView.UpdateGrid(_grid);
         }
 
@@ -185,37 +213,41 @@ namespace _Bludoku.Scripts.Boards
             return new Vector2(xPos, yPos);
         }
 
-        private static bool[,] BuildClearMask(int[,] grid, out int figuresToRemove)
+        private static bool[,] BuildClearMask(int[,] grid, out int clearedGroups,
+            List<Vector2Int> groupCenters = null)
         {
-            bool[,] mask = new bool[9, 9];
-            figuresToRemove = 0;
+            bool[,] mask = new bool[BoardSize, BoardSize];
+            clearedGroups = 0;
 
-            for (int row = 0; row < 9; row++)
+            for (int row = 0; row < BoardSize; row++)
             {
                 if (IsRowComplete(grid, row))
                 {
                     MarkRow(mask, row);
-                    figuresToRemove++;
+                    clearedGroups++;
+                    groupCenters?.Add(new Vector2Int(BoardCenter, row));
                 }
             }
 
-            for (int col = 0; col < 9; col++)
+            for (int col = 0; col < BoardSize; col++)
             {
                 if (IsColumnComplete(grid, col))
                 {
                     MarkColumn(mask, col);
-                    figuresToRemove++;
+                    clearedGroups++;
+                    groupCenters?.Add(new Vector2Int(col, BoardCenter));
                 }
             }
 
-            for (int boxRow = 0; boxRow < 3; boxRow++)
+            for (int boxRow = 0; boxRow < BoardSize / BoxSize; boxRow++)
             {
-                for (int boxCol = 0; boxCol < 3; boxCol++)
+                for (int boxCol = 0; boxCol < BoardSize / BoxSize; boxCol++)
                 {
                     if (IsBoxComplete(grid, boxRow, boxCol))
                     {
                         MarkBox(mask, boxRow, boxCol);
-                        figuresToRemove++;
+                        clearedGroups++;
+                        groupCenters?.Add(new Vector2Int(boxCol * BoxSize + BoxCenter, boxRow * BoxSize + BoxCenter));
                     }
                 }
             }
@@ -225,7 +257,7 @@ namespace _Bludoku.Scripts.Boards
 
         private static bool IsRowComplete(int[,] grid, int row)
         {
-            for (int col = 0; col < 9; col++)
+            for (int col = 0; col < BoardSize; col++)
                 if (grid[row, col] == 0)
                     return false;
             return true;
@@ -233,7 +265,7 @@ namespace _Bludoku.Scripts.Boards
 
         private static bool IsColumnComplete(int[,] grid, int col)
         {
-            for (int row = 0; row < 9; row++)
+            for (int row = 0; row < BoardSize; row++)
                 if (grid[row, col] == 0)
                     return false;
             return true;
@@ -241,8 +273,8 @@ namespace _Bludoku.Scripts.Boards
 
         private static bool IsBoxComplete(int[,] grid, int boxRow, int boxCol)
         {
-            for (int i = boxRow * 3; i < boxRow * 3 + 3; i++)
-            for (int j = boxCol * 3; j < boxCol * 3 + 3; j++)
+            for (int i = boxRow * BoxSize; i < boxRow * BoxSize + BoxSize; i++)
+            for (int j = boxCol * BoxSize; j < boxCol * BoxSize + BoxSize; j++)
                 if (grid[i, j] == 0)
                     return false;
             return true;
@@ -250,18 +282,18 @@ namespace _Bludoku.Scripts.Boards
 
         private static void MarkRow(bool[,] mask, int row)
         {
-            for (int col = 0; col < 9; col++) mask[row, col] = true;
+            for (int col = 0; col < BoardSize; col++) mask[row, col] = true;
         }
 
         private static void MarkColumn(bool[,] mask, int col)
         {
-            for (int row = 0; row < 9; row++) mask[row, col] = true;
+            for (int row = 0; row < BoardSize; row++) mask[row, col] = true;
         }
 
         private static void MarkBox(bool[,] mask, int boxRow, int boxCol)
         {
-            for (int i = boxRow * 3; i < boxRow * 3 + 3; i++)
-            for (int j = boxCol * 3; j < boxCol * 3 + 3; j++)
+            for (int i = boxRow * BoxSize; i < boxRow * BoxSize + BoxSize; i++)
+            for (int j = boxCol * BoxSize; j < boxCol * BoxSize + BoxSize; j++)
                 mask[i, j] = true;
         }
     }

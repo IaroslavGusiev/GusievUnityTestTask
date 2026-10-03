@@ -1,49 +1,71 @@
-using _Bludoku.Scripts.Boards;
 using UnityEngine;
+using _Bludoku.Scripts.Combo;
 
 namespace _Bludoku.Scripts.Score
 {
     public class ScoreMediator : MonoBehaviour
     {
         [SerializeField] private ScoreView scoreView;
-        [SerializeField] private Board board;
+        [SerializeField] private ComboMediator comboMediator;
         [SerializeField] private ScoreBoosterView boosterView;
         
-        private readonly ScoreBoostSystem _scoreBoostSystem = new();
+        private int _highComboThreshold;
 
-        private void Awake()
+        public void Initialize(int highComboThreshold)
         {
-            board.OnFigurePlaced += FigurePlaced;
+            _highComboThreshold = Mathf.Max(ComboState.ActivationThreshold, highComboThreshold);
+            
+            boosterView.Initialize();
+            
+            comboMediator.MoveProcessed += MoveProcessed;
+            comboMediator.StateChanged += ComboStateChanged;
         }
 
-        private void Start()
+        public void Dispose()
         {
-            ScoreSystem.LoadScore();
-            boosterView.SetBoosterEnabled(ScoreSystem.IsBoosterEnabled);
-            _scoreBoostSystem.IsBoosted = ScoreSystem.IsBoosterEnabled;
+            if (comboMediator == null)
+            {
+                return;
+            }
+            
+            comboMediator.MoveProcessed -= MoveProcessed;
+            comboMediator.StateChanged -= ComboStateChanged;
+        }
+
+        public void RefreshViews()
+        {
+            UpdateBooster(comboMediator.State, false);
             scoreView.UpdateScore(false);
         }
 
         public void ResetScore()
         {
+            UpdateBooster(comboMediator.State, false);
             ScoreSystem.ResetScore();
-            UpdateView();
+            scoreView.UpdateScore(false);
         }
 
-        private void FigurePlaced(ClearResult result)
+        private void MoveProcessed(ComboMove move, ComboState state)
         {
-            _scoreBoostSystem.FigurePlaced(result.ClearedCount);
-            boosterView.SetBoosterEnabled(_scoreBoostSystem.IsBoosted);
-            ScoreSystem.SetBoosterEnabled(_scoreBoostSystem.IsBoosted);
-            ScoreSystem.AddSetScore(result.ClearedCount);
+            UpdateBooster(state);
+            ScoreSystem.AddSetScore(move.ClearedCells);
             scoreView.UpdateScore();
         }
 
-        private void UpdateView()
+        private void UpdateBooster(ComboState state, bool animate = true)
         {
-            boosterView.SetBoosterEnabled(false);
-            _scoreBoostSystem.IsBoosted = false;
-            scoreView.UpdateScore(false);
+            ScoreSystem.SetBoosterEnabled(state.IsActive);
+            
+            boosterView.SetBoosterEnabled(
+                state.IsActive, 
+                animate: animate, 
+                highCombo: state.Count >= _highComboThreshold);
         }
+
+        private void ComboStateChanged(ComboChange change) => 
+            UpdateBooster(change.Current, ShouldAnimateBooster(change.Reason));
+
+        private static bool ShouldAnimateBooster(ComboChangeReason reason) =>
+            reason != ComboChangeReason.Restored && reason != ComboChangeReason.Reset;
     }
 }
