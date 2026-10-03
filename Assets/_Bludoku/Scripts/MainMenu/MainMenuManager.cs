@@ -1,6 +1,6 @@
-using _Bludoku.Scripts.MainMenu.Settings;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using _Bludoku.Scripts.MainMenu.Settings;
 
 namespace _Bludoku.Scripts.MainMenu
 {
@@ -9,20 +9,14 @@ namespace _Bludoku.Scripts.MainMenu
         [SerializeField] private PlayButtonView playButton;
         [SerializeField] private SettingsPanel settingsPanel;
 
-        void Start()
+        private void Start()
         {
             playButton.SetLevelNumber(SaveSystem.CurrentLevelNumber);
             playButton.SetOnClick(OnPlayClicked);
         }
 
-        public void OnSettingsClicked()
-        {
-            settingsPanel.Show();
-        }
 
-        void OnPlayClicked()
-        {
+        private void OnPlayClicked() => 
             SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex + 1);
-        }
     }
 }
