@@ -1,0 +1,29 @@
+.hot-actions {
+    padding: 16px;
+    flex-grow: 1;
+}
+
+.title {
+    font-size: 18px;
+    -unity-font-style: bold;
+    margin-bottom: 10px;
+}
+
+.description {
+    white-space: normal;
+    margin-bottom: 10px;
+}
+
+.save-path {
+    margin-bottom: 12px;
+}
+
+.clear-button {
+    min-height: 30px;
+    margin-bottom: 8px;
+}
+
+.status {
+    white-space: normal;
+    margin-top: 8px;
+}

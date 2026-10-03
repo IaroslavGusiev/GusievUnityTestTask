@@ -25,6 +25,7 @@ namespace _Bludoku.Scripts.Blocks
 
         public int[,] Grid => _grid;
         public int ID => _id;
+        public int SlotIndex { get; private set; }
 
         private void Awake()
         {
@@ -47,9 +48,10 @@ namespace _Bludoku.Scripts.Blocks
             _gridView.Build(grid);
         }
 
-        public void SetInitialPosition(Transform initialPosition)
+        public void SetInitialPosition(Transform initialPosition, int slotIndex)
         {
             _initialPosition = initialPosition;
+            SlotIndex = slotIndex;
         }
         
         public void SetPlaceable(bool placeable)

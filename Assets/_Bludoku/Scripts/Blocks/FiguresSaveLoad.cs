@@ -1,53 +1,72 @@
 using System;
 using System.Collections.Generic;
-using UnityEngine;
+using _Bludoku.Scripts.Save;
 
 namespace _Bludoku.Scripts.Blocks
 {
     public class FiguresSaveLoad
     {
-        private const string FiguresSaveKey = "FiguresSave";
-        
-        public void SaveFigures(List<Figure> figures)
+        public static void SaveFigures(List<Figure> figures, int slotCount)
         {
-            string saveData = "";
-            foreach (var figure in figures)
+            int[] ids = CreateEmptySlots(slotCount);
+
+            foreach (Figure figure in figures)
             {
-                if (figure != null)
-                {
-                    saveData += figure.ID + ";";
-                }
-                else
-                {
-                    saveData += "-1;";
-                }
+                ids[figure.SlotIndex] = figure.ID;
             }
 
-            PlayerPrefs.SetString(FiguresSaveKey, saveData);
+            JsonSaveStorage.Save(SaveFiles.Figures, new FiguresData { ids = ids });
         }
 
-        public int[] LoadFigures()
+        public static int[] LoadFigures(int slotCount)
         {
-            string saveData = PlayerPrefs.GetString(FiguresSaveKey, "");
-            if (string.IsNullOrEmpty(saveData))
-                return Array.Empty<int>();
-
-            string[] figureIds = saveData.Split(';');
-            int[] result = new int[figureIds.Length];
-            for (int i = 0; i < figureIds.Length; i++)
+            if (JsonSaveStorage.TryLoad(SaveFiles.Figures, out FiguresData data) == false ||
+                HasValidFigures(data.ids, slotCount) == false)
             {
-                if (int.TryParse(figureIds[i], out int id))
-                {
-                    result[i] = id;
-                }
-                else
-                {
-                    result[i] = -1;
-                }
-                Debug.Log($"Loaded figure ID: {result[i]} at position {i}");
+                return Array.Empty<int>();
             }
 
-            return result;
+            return data.ids;
+        }
+
+        private static int[] CreateEmptySlots(int slotCount)
+        {
+            var ids = new int[slotCount];
+
+            for (var i = 0; i < ids.Length; i++)
+            {
+                ids[i] = -1;
+            }
+
+            return ids;
+        }
+
+        private static bool HasValidFigures(int[] ids, int slotCount)
+        {
+            if (ids == null || ids.Length != slotCount)
+            {
+                return false;
+            }
+
+            var hasFigure = false;
+
+            foreach (int id in ids)
+            {
+                if (id < -1 || id >= FigureFactory.Shapes.Length)
+                {
+                    return false;
+                }
+
+                hasFigure |= id >= 0;
+            }
+
+            return hasFigure;
+        }
+
+        [Serializable]
+        private class FiguresData
+        {
+            public int[] ids;
         }
     }
 }

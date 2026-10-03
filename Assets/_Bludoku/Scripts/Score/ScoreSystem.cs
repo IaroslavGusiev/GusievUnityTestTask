@@ -1,5 +1,3 @@
-using UnityEngine;
-
 namespace _Bludoku.Scripts.Score
 {
     public static class ScoreSystem
@@ -8,9 +6,6 @@ namespace _Bludoku.Scripts.Score
         private static int _highScore;
         private static bool _isBoosterEnabled;
         
-        private const string ScoreKey = "CurrentScore";
-        private const string HighScoreKey = "HighScore";
-        private const string BoosterKey = "Booster";
         private const int ScoreForSet = 1;
         private const float BoosterMultiplier = 1.5f;
 
@@ -25,9 +20,10 @@ namespace _Bludoku.Scripts.Score
 
         public static void LoadScore()
         {
-            _score = PlayerPrefs.GetInt(ScoreKey, 0);
-            _highScore = PlayerPrefs.GetInt(HighScoreKey, 0);
-            _isBoosterEnabled = PlayerPrefs.GetInt(BoosterKey) == 1;
+            ScoreSaveLoad.ScoreData data = ScoreSaveLoad.Load();
+            _score = data.score;
+            _highScore = data.highScore;
+            _isBoosterEnabled = data.boosterEnabled;
         }
         
         public static int GetBaseSetScore(int setsCount) =>
@@ -58,12 +54,7 @@ namespace _Bludoku.Scripts.Score
             SaveScore();
         }
 
-        private static void SaveScore()
-        {
-            PlayerPrefs.SetInt(BoosterKey, IsBoosterEnabled ? 1 : 0);
-            PlayerPrefs.SetInt(ScoreKey, Score);
-            PlayerPrefs.SetInt(HighScoreKey, HighScore);
-            PlayerPrefs.Save();
-        }
+        private static void SaveScore() =>
+            ScoreSaveLoad.Save(Score, HighScore, IsBoosterEnabled);
     }
 }

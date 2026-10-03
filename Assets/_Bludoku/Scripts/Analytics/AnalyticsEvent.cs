@@ -7,6 +7,7 @@ namespace _Bludoku.Scripts.Analytics
         private readonly Dictionary<string, object> _parameters = new();
 
         public string Name { get; }
+        
         public IReadOnlyDictionary<string, object> Parameters => _parameters;
 
         public AnalyticsEvent(string name) =>

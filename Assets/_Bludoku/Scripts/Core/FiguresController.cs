@@ -25,8 +25,8 @@ namespace _Bludoku.Scripts.Core
 
         public void LoadFigures()
         {
-            int[] savedFigureIds = _saveLoad.LoadFigures();
-            if (savedFigureIds == null || savedFigureIds.Length == 0)
+            int[] savedFigureIds = FiguresSaveLoad.LoadFigures(figurePositions.Count);
+            if (savedFigureIds.Length == 0)
             {
                 UpdateFigures();
             }
@@ -70,7 +70,7 @@ namespace _Bludoku.Scripts.Core
                 RegisterFigure(newFigure, i);
             }
             
-            _saveLoad.SaveFigures(_currentFigures);
+            FiguresSaveLoad.SaveFigures(_currentFigures, figurePositions.Count);
         }
 
         public void ResetFigures()
@@ -121,7 +121,7 @@ namespace _Bludoku.Scripts.Core
 
         private void RegisterFigure(Figure figure,  int index)
         {
-            figure.SetInitialPosition(figurePositions[index]);
+            figure.SetInitialPosition(figurePositions[index], index);
             figure.transform.position = figurePositions[index].position;
 
             figure.OnPicked += FigurePicked;
@@ -148,7 +148,7 @@ namespace _Bludoku.Scripts.Core
 
             CheckPlaceability();
             
-            _saveLoad.SaveFigures(_currentFigures);
+            FiguresSaveLoad.SaveFigures(_currentFigures, figurePositions.Count);
         }
 
         private void CheckPlaceability()

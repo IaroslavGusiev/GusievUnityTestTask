@@ -1,0 +1,11 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <ui:Style src="HotActionsWindow.uss" />
+    <ui:VisualElement class="hot-actions">
+        <ui:Label text="Gameplay Saves" class="title" />
+        <ui:Label text="Clear the board, remaining pieces, current score and best score. Sound and other settings are kept." class="description" />
+        <ui:TextField name="save-path" label="Save folder" readonly="true" class="save-path" />
+        <ui:Button name="clear-saves" text="Clear Save Files" class="clear-button" />
+        <ui:Label text="Available outside Play Mode." class="description" />
+        <ui:Label name="status" class="status" />
+    </ui:VisualElement>
+</ui:UXML>
