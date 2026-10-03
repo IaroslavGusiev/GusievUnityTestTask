@@ -2,6 +2,8 @@
 
 An extension of the existing Bludoku project for the Unity Developer Test Assignment: a combo system, combo VFX, and extensible analytics.
 
+**[Download the Android APK](https://github.com/IaroslavGusiev/GusievUnityTestTask/releases/download/v1.0.0/UnityTestTask.apk)** · [Release v1.0.0](https://github.com/IaroslavGusiev/GusievUnityTestTask/releases/tag/v1.0.0)
+
 ## Approach
 
 The implementation keeps the existing gameplay foundation and visual identity. New features reuse the board events, score calculation, UI, and particle effects. Refactoring focuses on the code involved in those features.
@@ -45,6 +47,8 @@ Higher combos use stronger text appearance, trail colors, heart animation, and p
 
 Event names are centralized in `AnalyticsEvents`. `AnalyticsEvent` carries extensible string, integer, and decimal parameters. Adding an event means adding its constant and tracking it at the gameplay action; adding fields means extending its payload. A future Firebase provider can implement the same interface and replace the provider created by `GameController`.
 
+See the [analytics guide](Docs/Analytics.md) for event parameters and extension examples.
+
 ## Refactoring and saves
 
 `GameController` coordinates initialization and disposal of the feature modules. Their gameplay subscriptions follow that lifecycle, while views manage their animation visibility. Touched classes use smaller methods and clearer responsibilities.
@@ -68,6 +72,8 @@ Second Chance is treated as the existing power-up, and extra combo score as the 
 
 Open the project in **Unity 2022.3.62f3**. For direct gameplay review, open `Assets/_Bludoku/Scenes/GameScene 1.unity` and enter Play Mode.
 
-The APK is available locally at `Builds/UnityTestTask.apk` (build outputs are ignored by Git). It uses IL2CPP, supports ARMv7 and ARM64, and is signed with Unity's debug key for installation and testing. The Android build, package metadata, and signature have been verified; physical device testing is pending.
+Download `UnityTestTask.apk` from [Release v1.0.0](https://github.com/IaroslavGusiev/GusievUnityTestTask/releases/tag/v1.0.0). It requires Android 6.0 or newer, uses IL2CPP, supports ARMv7 and ARM64, and is signed with Unity's debug key for installation and testing. The Android build, package metadata, and signature have been verified. The author also tested the APK on Android and confirmed it works.
+
+Build outputs remain ignored by Git; the local output is `Builds/UnityTestTask.apk`. The downloadable APK is attached to the GitHub release.
 
 To reproduce it, select Android in Build Settings, keep **MainMenu → GameScene 1** enabled in that order, leave **Build App Bundle** and **Export Project** disabled, and select **Build**. Use Unity's bundled Android tools and leave **Custom Keystore** disabled. The deprecated `GameScene.unity` is excluded from the build.

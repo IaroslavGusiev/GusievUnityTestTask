@@ -6,9 +6,6 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/MoneyTime/Game/LoadingScene/MoneyTime_LoadingScene.unity
-    guid: 581b3fbd75afcab4daec74ae4b0deeb3
-  - enabled: 1
     path: Assets/_Bludoku/Scenes/MainMenu.unity
     guid: 294b8ab0a66dd437a92a0ad9c9b36725
   - enabled: 1
