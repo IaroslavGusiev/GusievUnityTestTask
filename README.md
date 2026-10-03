@@ -68,4 +68,6 @@ Second Chance is treated as the existing power-up, and extra combo score as the 
 
 Open the project in **Unity 2022.3.62f3**. For direct gameplay review, open `Assets/_Bludoku/Scenes/GameScene 1.unity` and enter Play Mode.
 
-Android APK delivery is pending. The APK location and device verification will be added after the build is completed.
+The APK is available locally at `Builds/UnityTestTask.apk` (build outputs are ignored by Git). It uses IL2CPP, supports ARMv7 and ARM64, and is signed with Unity's debug key for installation and testing. The Android build, package metadata, and signature have been verified; physical device testing is pending.
+
+To reproduce it, select Android in Build Settings, keep **MainMenu → GameScene 1** enabled in that order, leave **Build App Bundle** and **Export Project** disabled, and select **Build**. Use Unity's bundled Android tools and leave **Custom Keystore** disabled. The deprecated `GameScene.unity` is excluded from the build.
